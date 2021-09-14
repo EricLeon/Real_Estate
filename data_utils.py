@@ -13,9 +13,7 @@ def scrape_flats(database_path, radius=2):
 
 	"""
 	Scrapes Open Rent for flat listings in London, UK with a user-provided radius.
-
 	This function utilises a headless selenium instance to scroll to the bottom of the web-page before requesting the HTML in BeautifulSoup. This is because Open Rent uses lazy loading, and not all listings are shown when the web-page is loaded. The user needs to scroll all the way to the bottom to view all of the search results.
-
 	Parameters
 	----------
 	radius : int -> Default = 2
@@ -23,7 +21,6 @@ def scrape_flats(database_path, radius=2):
 	
 	existing_ids : list
 		The existing property ID's in the database
-
 	Returns
 	------
 	data : DataFrame
@@ -67,7 +64,7 @@ def scrape_flats(database_path, radius=2):
 	bedrooms_list, bathrooms_list, max_tenants_list, deposit_list, rent_list = ([] for i in range(5))
 	bills_included_list, student_list, family_list, pet_list, smoker_list = ([] for i in range(5))
 	avail_from_list, min_tenancy_list, garden_list, parking_list, fireplace_list = ([] for i in range(5))
-	furnishing_list, all_stations_list, closest_station_list, postcode_list = ([] for i in range(4))
+	furnishing_list, closest_station_list, closest_station_mins_list, postcode_list = ([] for i in range(4))
 
 	# Scrape each listing
 	listings = soup.find_all(attrs={'class': 'pli clearfix'})
@@ -81,127 +78,91 @@ def scrape_flats(database_path, radius=2):
 			pass
 
 		else:
-			sub_soup = BeautifulSoup(requests.get(property_link).text, 'html.parser')
-			
 			try:
+				sub_soup = BeautifulSoup(requests.get(property_link).text, 'html.parser')
 				title = sub_soup.find(attrs={'class': 'property-title'}).get_text().strip()
 				postcode = title.split(',')[-1].strip()
-			except:
-				title = None
-				postcode = None
-
-			try:
 				description = sub_soup.find(attrs={'class': 'description'}).get_text().strip()
-			except:
-				description = None
 
 			# Overview Table
-			try:
 				table = sub_soup.find(attrs={'class': 'table table-striped intro-stats'})
 				rows = table.find_all('td')
 				location = rows[1].get_text().strip()
 				bedrooms = int(rows[3].get_text().strip())
 				bathrooms = int(rows[5].get_text().strip())
 				max_tenants = int(rows[7].get_text().strip())
-			except:
-				location = 'London'
-				bedrooms = -1
-				bathrooms = -1
-				max_tenants = -1
 
 			# Price & Bills
-			try:
 				table = sub_soup.find_all(attrs={'class': 'table table-striped'})[0]
 				rows = table.find_all('td')
 				deposit = int(rows[1].get_text().strip().replace('£', '').replace(',','').split('.')[0])
 				rent_pcm = int(rows[3].get_text().strip().replace('£', '').replace(',','').split('.')[0])
 				bills_included = 'Yes' if rows[5].find('i').attrs['class'][-1] == 'fa-check' else 'No'
-			except:
-				deposit = -1
-				rent_pcm = -1
-				bills_included = 'Undefined'
 
 			# Tenant Preferences
-			try:
 				table = sub_soup.find_all(attrs={'class': 'table table-striped'})[1]
 				rows = table.find_all('td')
 				student_friendly = 'Yes' if rows[1].find('i').attrs['class'][-1] == 'fa-check' else 'No'
 				family_friendly = 'Yes' if rows[3].find('i').attrs['class'][-1] == 'fa-check' else 'No'
 				pet_friendly = 'Yes' if rows[5].find('i').attrs['class'][-1] == 'fa-check' else 'No'
 				smoker_friendly = 'Yes' if rows[7].find('i').attrs['class'][-1] == 'fa-check' else 'No'
-			except:
-				student_friendly = 'Undefined'
-				family_friendly = 'Undefined'
-				pet_friendly = 'Undefined'
-				smoker_friendly = 'Undefined'
 
 			# Availability
-			try:
 				table = sub_soup.find_all(attrs={'class': 'table table-striped'})[2]
 				rows = table.find_all('td')
 				available = rows[1].get_text().strip()
 				avail_from = today if available == 'Today' else available
 				min_tenancy = int(rows[3].get_text().split()[0])
-			except:
-				available = 'Undefined'
-				min_tenancy = -1
-
 
 			# Features
-			try:
 				table = sub_soup.find_all(attrs={'class': 'table table-striped'})[3]
 				rows = table.find_all('td')
 				garden = 'Yes' if rows[1].find('i').attrs['class'][-1] == 'fa-check' else 'No'
 				parking = 'Yes' if rows[3].find('i').attrs['class'][-1] == 'fa-check' else 'No'
 				fireplace = 'Yes' if rows[5].find('i').attrs['class'][-1] == 'fa-check' else 'No'
 				furnishing = rows[7].get_text().strip()
-			except:
-				garden = 'Undefined'
-				parking = 'Undefined'
-				fireplace = 'Undefined'
-				furnishing = 'Undefined'
 
 			# Transportation
-			try:
 				table = sub_soup.find(attrs={'class': 'table table-striped mt-1'})
 				data_rows = table.find_all('td')[4:]
 				stations = data_rows[::3]
 				all_stations = [x.get_text().strip() for x in stations]
 				distances = data_rows[1::3]
+				closest_station = all_stations[0]
 				closest_station_mins = int(distances[0].get_text().strip().split()[0])
+
+				property_id_list.append(property_id)
+				property_link_list.append(property_link)
+				title_list.append(title)
+				description_list.append(description)
+				location_list.append(location)
+				bedrooms_list.append(bedrooms)
+				bathrooms_list.append(bathrooms)
+				max_tenants_list.append(max_tenants)
+				deposit_list.append(deposit)
+				rent_list.append(rent_pcm)
+				bills_included_list.append(bills_included)
+				student_list.append(student_friendly)
+				family_list.append(family_friendly)
+				pet_list.append(pet_friendly)
+				smoker_list.append(smoker_friendly)
+				avail_from_list.append(avail_from)
+				min_tenancy_list.append(min_tenancy)
+				garden_list.append(garden)
+				parking_list.append(parking)
+				fireplace_list.append(fireplace)
+				furnishing_list.append(furnishing)
+				closest_station_list.append(closest_station)
+				closest_station_mins_list.append(closest_station_mins)
+				postcode_list.append(postcode)
+
+				# Print feedback
+				num_scraped += 1
+				print(f"{num_scraped} new listings scraped")
+				sleep(random.randint(2,4))
+			
 			except:
-				all_stations = ['Undefined']
-				closest_station_mins = -1
-
-			property_id_list.append(property_id)
-			property_link_list.append(property_link)
-			title_list.append(title)
-			description_list.append(description)
-			location_list.append(location)
-			bedrooms_list.append(bedrooms)
-			bathrooms_list.append(bathrooms)
-			max_tenants_list.append(max_tenants)
-			deposit_list.append(deposit)
-			rent_list.append(rent_pcm)
-			bills_included_list.append(bills_included)
-			student_list.append(student_friendly)
-			family_list.append(family_friendly)
-			pet_list.append(pet_friendly)
-			smoker_list.append(smoker_friendly)
-			avail_from_list.append(avail_from)
-			min_tenancy_list.append(min_tenancy)
-			garden_list.append(garden)
-			parking_list.append(parking)
-			fireplace_list.append(fireplace)
-			furnishing_list.append(furnishing)
-			all_stations_list.append(all_stations)
-			closest_station_list.append(closest_station_mins)
-			postcode_list.append(postcode)
-
-			# Print feedback
-			num_scraped += 1
-			print(f"{num_scraped} new listings scraped")
-			sleep(random.random() * 1.1)
+				pass
 
 	# Create DataFrame
 	data_dict = {
@@ -212,7 +173,7 @@ def scrape_flats(database_path, radius=2):
 		'family_friendly':family_list, 'pet_friendly':pet_list, 'smoker_friendly':smoker_list,
 		'available_from':avail_from_list, 'min_tenancy_months':min_tenancy_list, 'garden':garden_list,
 		'parking':parking_list, 'fireplace':fireplace_list, 'furnishing':furnishing_list,
-		'nearby_stations':all_stations_list, 'closest_station_mins':closest_station_list, 
+		'closest_station':closest_station_list, 'closest_station_mins':closest_station_mins_list, 
 		'postcode':postcode_list}
 	
 	data = pd.DataFrame(data_dict)
@@ -223,7 +184,6 @@ def scrape_flats(database_path, radius=2):
 def populate_database(data, database_path):
 	"""
 	Dumps data scraped from Openrent into database in current working directory.
-
 	Parameters
 	----------
 	data : dataframe
@@ -231,7 +191,6 @@ def populate_database(data, database_path):
 	
 	database_path : str
 		The path to the database where this data is stored. If in CWD then this is just the database name.
-
 	Returns
 	------
 	"""
@@ -243,7 +202,7 @@ def populate_database(data, database_path):
 		'deposit':'real', 'rent_pcm':'real', 'bills_included':'integer', 'student_friendly':'integer', 
 		'family_friendly':'integer', 'pet_friendly':'integer', 'smoker_friendly':'integer', 
 		'available_from':'text', 'min_tenancy_months':'integer', 'garden':'integer', 'parking':'integer',
-		'fireplace':'integer', 'furnishing':'text', 'nearby_stations':'text', 
+		'fireplace':'integer', 'furnishing':'text', 'closest_station':'text', 
 		'closest_station_mins':'integer', 'postcode':'text', 'scrape_date':'text'
 		})
 
@@ -251,12 +210,10 @@ def populate_database(data, database_path):
 def get_existing_properties(database_path):
 	"""
 	Gets the existing property ID's from the database to avoid scraping duplicate listings.
-
 	Parameters
 	----------
 	database_path : str
 		The path to the database where this data is stored. If in CWD then this is just the database name.
-
 	Returns
 	------
 	ids : list
@@ -268,7 +225,3 @@ def get_existing_properties(database_path):
 	c = conn.cursor()
 	ids = c.execute('SELECT property_id FROM rentals').fetchall()
 	return ids
-
-
-
-
