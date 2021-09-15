@@ -7,6 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 import datetime
 import sqlite3
+import os
 
 # FUNCTIONS
 def scrape_flats(database_path, radius=2):
@@ -178,12 +179,24 @@ def scrape_flats(database_path, radius=2):
 	
 	data = pd.DataFrame(data_dict)
 	data['scrape_date'] = today
-	return data
+
+	# Export today's data to be dumped to Database
+	data.to_csv('scraped_data.csv', index=False)
+
+	# Append to existing CSV file to all historical data to be used in Tableau
+	try:
+		existing_data = pd.read_csv('all_rental_data.csv')
+		all_data = pd.concat([existing_data, data])
+		all_data.to_csv('all_rental_data.csv', index=False)
+	
+	except:
+		data.to_csv('all_rental_data.csv', index=False)
 
 
-def populate_database(data, database_path):
+def populate_database(database_path):
 	"""
-	Dumps data scraped from Openrent into database in current working directory.
+	Dumps data scraped from Openrent today into database in current working directory. This step acts as a backup to the CSV file that also contains all of the listing information.
+
 	Parameters
 	----------
 	data : dataframe
@@ -194,6 +207,9 @@ def populate_database(data, database_path):
 	Returns
 	------
 	"""
+
+	# Read in the data scraped from Openrent today
+	data = pd.read_csv('scraped_data.csv')
 
 	conn = sqlite3.connect(database_path)
 	data.to_sql('rentals', conn, if_exists='append', index=False, dtype={
@@ -206,6 +222,8 @@ def populate_database(data, database_path):
 		'closest_station_mins':'integer', 'postcode':'text', 'scrape_date':'text'
 		})
 
+	# Delete data from today only
+	os.remove('scraped_data.csv')
 
 def get_existing_properties(database_path):
 	"""

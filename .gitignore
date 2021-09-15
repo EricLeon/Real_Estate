@@ -3,3 +3,4 @@ env
 .DS_Store
 __pycache__
 real_estate.db
+all_rental_data.csv
