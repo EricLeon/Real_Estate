@@ -2,12 +2,12 @@
 
 - Built a custom web crawler to automatically download listing information from a popular UK letting website and save it to a local SQLite database.
 - Created a data-cleaning pipeline through which I pass freshly scraped data that uniformly parses data into new features that aide in analysis.
-- Connect Tableau Desktop to my local database to create dashboards for personal use.
+- Used Tableau Desktop to design and build a custom dashboard for identifying ideal rentals.
 
 
 ## Framing The Problem
 
-- Objective: Gather and utilise existing data to visualise real estate trends over time in London. I am hoping to identify potentially undervalued flats / areas within the city for further investment analysis.
+- Objective: Gather and utilise existing data to visualise real estate trends over time in London. I am hoping to identify potentially undervalued flats / areas within the city for further analysis.
 
 
 ### Data Collection
@@ -34,20 +34,26 @@ After scraping the data I needed to clean it up in various ways. The modificatio
 - Parsed the *distance to station* feature and created a new *walk time to station* feature.
 - Parsed the *minimum tenancy* feature to take out only the number of months; removing all excess information in this column.
 - Removed excess characters from the price fields and changed the data types.
-- Created a new feature, *postcode* using the *title* feature. 
+- Created a new feature, *postcode* using the *title* feature.
+- Created multiple calculations in Tableau to aide in dashboard creation including: 
+	* "Still on the market" (T/F), 
+	* "Days on the market", 
+	* "Borough" (Mapped the postcode from above to a more human readable version)
 
 
 ## Data Visualisation
 
 For this analysis I created a Tableau Desktop dashboard that would update each time I collected new data. Below are some screenshots of the current version of this dashboard that I use for flat analysis:
 
-* INSERT SCREENSHOTS OF DASHBOARD
+![](images/dashboard-1.png)
+![](images/dashboard-2.png)
+![](images/dashboard-3.png)
+![](images/dashboard-4.png)
+![](images/dashboard-5.png)
 
 
 ## Next Steps
 
-- Create Tableau dashboard
-- Finish up README adding in all engineered features and more stuff to top summary
 - Incorporate Machine Learning to identify undervalued / over valued properties
 - Add to README what I did and ML results / findings. Add more info to top summary
 - Set up automatic scraping on Raspberry Pi or similar
@@ -58,4 +64,5 @@ For this analysis I created a Tableau Desktop dashboard that would update each t
 
 - **Python Version:** 3.7
 - **Python Libraries:** Selenium, Requests, Beautiful Soup, NumPy, pandas
+- **Tableau Desktop Version:** 2021.2
 - **Inspiration:** https://medium.com/geoai/house-hunting-the-data-scientist-way-b32d93f5a42f

@@ -17,11 +17,12 @@ def scrape_flats(database_path, radius=2):
 	This function utilises a headless selenium instance to scroll to the bottom of the web-page before requesting the HTML in BeautifulSoup. This is because Open Rent uses lazy loading, and not all listings are shown when the web-page is loaded. The user needs to scroll all the way to the bottom to view all of the search results.
 	Parameters
 	----------
+	database_path : str
+		Path to database. If in working directory then just name of the database.
+
 	radius : int -> Default = 2
 		Radius around London in which to expand the search.
 	
-	existing_ids : list
-		The existing property ID's in the database
 	Returns
 	------
 	data : DataFrame
@@ -32,11 +33,14 @@ def scrape_flats(database_path, radius=2):
 	num_scraped = 0
 	today = datetime.date.today().strftime("%d %B %Y")
 
+	""" EXCLUDE FOR NOW TO COLLECT MORE DATA, AND USE MORE IN DEPTH CALCS IN TABLEAU
 	# Check existing listings to avoid dupes
-	try:
-		existing_ids = get_existing_properties(database_path)
-	except sqlite3.OperationalError:
-		existing_ids = []
+	# try:
+	# 	existing_ids = get_existing_properties(database_path)
+	# except sqlite3.OperationalError:
+	# 	existing_ids = []
+	"""
+	existing_ids = []
 
 	# Request web page and simulate scrolling to bottom (Lazy Loading)
 	link = f'https://www.openrent.co.uk/properties-to-rent/london?term=London&area={radius}'
@@ -75,7 +79,7 @@ def scrape_flats(database_path, radius=2):
 		property_id = property_link.split('/')[-1]
 
 		# Visit detailed listings; only if not previously scraped
-		if int(property_id) in existing_ids:
+		if property_id in existing_ids:
 			pass
 
 		else:
@@ -161,6 +165,9 @@ def scrape_flats(database_path, radius=2):
 				num_scraped += 1
 				print(f"{num_scraped} new listings scraped")
 				sleep(random.randint(2,4))
+
+				# REMOVE THIS WHEN I ONLY WANT UNIQUE LISTINGS
+				existing_ids.append(property_id)
 			
 			except:
 				pass
@@ -180,6 +187,9 @@ def scrape_flats(database_path, radius=2):
 	data = pd.DataFrame(data_dict)
 	data['scrape_date'] = today
 
+	# Print feedback
+	print(f"{len(data)} new listings scraped today.")
+
 	# Export today's data to be dumped to Database
 	data.to_csv('scraped_data.csv', index=False)
 
@@ -188,9 +198,11 @@ def scrape_flats(database_path, radius=2):
 		existing_data = pd.read_csv('all_rental_data.csv')
 		all_data = pd.concat([existing_data, data])
 		all_data.to_csv('all_rental_data.csv', index=False)
+		print(f"Listings appended to existing CSV file. In total there are {len(all_data)} listings in the Excel file.")
 	
 	except:
 		data.to_csv('all_rental_data.csv', index=False)
+		print("A new file has been created to hold all the listing data.")
 
 
 def populate_database(database_path):
@@ -224,6 +236,7 @@ def populate_database(database_path):
 
 	# Delete data from today only
 	os.remove('scraped_data.csv')
+	print("Today's listings have been added to the SQLite database, and the temporary CSV file with today's listings has been removed.")
 
 def get_existing_properties(database_path):
 	"""
@@ -242,4 +255,5 @@ def get_existing_properties(database_path):
 	conn.row_factory = lambda cursor, row: row[0]
 	c = conn.cursor()
 	ids = c.execute('SELECT property_id FROM rentals').fetchall()
+	print(f"There are already {len(ids)} listings in the database. Searching for new listings only...")
 	return ids
