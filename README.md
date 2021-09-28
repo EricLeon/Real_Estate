@@ -3,6 +3,9 @@
 - Built a custom web crawler to automatically download listing information from a popular UK letting website and save it to a local SQLite database.
 - Created a data-cleaning pipeline through which I pass freshly scraped data that uniformly parses data into new features that aide in analysis.
 - Used Tableau Desktop to design and build a custom dashboard for identifying ideal rentals.
+- Performed data cleaning, exploratory data analysis as well as feature engineering on collected data.
+- Trained & Optimised a Random Forest Regression model with an RMSE of roughly 123 which I am currently utilising to identify both "fairly" priced listings as well as those that may be potentially undervalued.
+*The workbook containing the Machine Learning / Data Science workflow is in this repository named "Flat Rental Analysis & Modelling" and contains further commentary.*
 
 
 ## Framing The Problem
@@ -34,6 +37,10 @@ After scraping the data I needed to clean it up in various ways. The modificatio
 - Parsed the *distance to station* feature and created a new *walk time to station* feature.
 - Parsed the *minimum tenancy* feature to take out only the number of months; removing all excess information in this column.
 - Removed excess characters from the price fields and changed the data types.
+- Grouped the listings into *listing_type* based on the text contained in *title* (flat, studio, maisonette, shared). 
+- Used the *postcode* feature to determine if the part of London played a part in monthly rent (North vs. East)
+- Calculated the bedroom/bathroom ratio for each listing.
+- Utilised the *available_from* date to see if moving in certain seasons would be more cost effective.
 - Created a new feature, *postcode* using the *title* feature.
 - Created multiple calculations in Tableau to aide in dashboard creation including: 
 	* "Still on the market" (T/F), 
@@ -54,8 +61,6 @@ For this analysis I created a Tableau Desktop dashboard that would update each t
 
 ## Next Steps
 
-- Incorporate Machine Learning to identify undervalued / over valued properties
-- Add to README what I did and ML results / findings. Add more info to top summary
 - Set up automatic scraping on Raspberry Pi or similar
 - Look into creating a similar scraper / pipeline for houses for sale all over the UK (personal investment)
 

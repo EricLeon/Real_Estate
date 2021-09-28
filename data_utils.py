@@ -13,24 +13,24 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # FUNCTIONS
-def scrape_flats(database_path, radius=2, transformation_pipeline = 'full_pipeline.joblib', model='tuned_model.joblib'):
+def scrape_flats(transformation_pipeline, model, database_path, radius=2):
 
 	"""
 	Scrapes Open Rent for flat listings in London, UK with a user-provided radius.
 	This function utilises a headless selenium instance to scroll to the bottom of the web-page before requesting the HTML in BeautifulSoup. This is because Open Rent uses lazy loading, and not all listings are shown when the web-page is loaded. The user needs to scroll all the way to the bottom to view all of the search results.
 	Parameters
 	----------
-	database_path : str
-		Path to database. If in working directory then just name of the database.
-
-	radius : int -> Default = 2
-		Radius around London in which to expand the search.
-
-	transformation_pipeline : joblib -> Default = full_pipeline.joblib
+	transformation_pipeline : str
 		The custom transformation pipeline created while training the ML model.
 
-	model : joblib -> Default = tuned_model.joblib
+	model : str
 		The tuned machine learning model that was trained seperately.
+
+	database_path : str
+		Path to database. If in working directory then just name of the database.
+		
+	radius : int -> Default = 2
+		Radius around London in which to expand the search.
 	
 	Returns
 	------
@@ -87,6 +87,9 @@ def scrape_flats(database_path, radius=2, transformation_pipeline = 'full_pipeli
 	for listing in listings:
 		property_link = 'https://www.openrent.co.uk/' + listing['href']
 		property_id = property_link.split('/')[-1]
+
+
+		print(property_link)
 
 		# Visit detailed listings; only if not previously scraped
 		if property_id in existing_ids:
@@ -196,7 +199,6 @@ def scrape_flats(database_path, radius=2, transformation_pipeline = 'full_pipeli
 				existing_ids.append(property_id)
 			
 			except:
-				sleep(random.randint(3,7))
 				pass
 
 	# Create DataFrame
@@ -216,9 +218,7 @@ def scrape_flats(database_path, radius=2, transformation_pipeline = 'full_pipeli
 	data['scrape_date'] = today
 
 	# Make predictions
-	full_pipeline = load(transformation_pipeline)
-	model = load(model)
-	transformed_data = full_pipeline.transform(data)
+	transformed_data = transformation_pipeline.transform(data)
 	predictions = model.predict(transformed_data)
 	data['predicted_monthly_rent'] = predictions
 
