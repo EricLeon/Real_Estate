@@ -49,7 +49,7 @@ After scraping the data I needed to clean it up in various ways. The modificatio
 	* "Borough" (Mapped the postcode from above to a more human readable version)
 
 
-## Data Visualisation
+## Data Visualisation (Tableau)
 
 For this analysis I created a Tableau Desktop dashboard that would update each time I collected new data. Below are some screenshots of the current version of this dashboard that I use for flat analysis:
 
@@ -69,6 +69,6 @@ For this analysis I created a Tableau Desktop dashboard that would update each t
 ## Code & Resources Used
 
 - **Python Version:** 3.7
-- **Python Libraries:** Selenium, Requests, Beautiful Soup, NumPy, pandas
+- **Python Libraries:** Selenium, Requests, Beautiful Soup, NumPy, pandas, sklearn, matplotlib, Seaborn
 - **Tableau Desktop Version:** 2021.2
 - **Inspiration:** https://medium.com/geoai/house-hunting-the-data-scientist-way-b32d93f5a42f
