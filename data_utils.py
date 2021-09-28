@@ -8,9 +8,12 @@ from bs4 import BeautifulSoup
 import datetime
 import sqlite3
 import os
+from joblib import load
+import warnings
+warnings.filterwarnings('ignore')
 
 # FUNCTIONS
-def scrape_flats(database_path, radius=2):
+def scrape_flats(database_path, radius=2, transformation_pipeline = 'full_pipeline.joblib', model='tuned_model.joblib'):
 
 	"""
 	Scrapes Open Rent for flat listings in London, UK with a user-provided radius.
@@ -22,6 +25,12 @@ def scrape_flats(database_path, radius=2):
 
 	radius : int -> Default = 2
 		Radius around London in which to expand the search.
+
+	transformation_pipeline : joblib -> Default = full_pipeline.joblib
+		The custom transformation pipeline created while training the ML model.
+
+	model : joblib -> Default = tuned_model.joblib
+		The tuned machine learning model that was trained seperately.
 	
 	Returns
 	------
@@ -70,6 +79,7 @@ def scrape_flats(database_path, radius=2):
 	bills_included_list, student_list, family_list, pet_list, smoker_list = ([] for i in range(5))
 	avail_from_list, min_tenancy_list, garden_list, parking_list, fireplace_list = ([] for i in range(5))
 	furnishing_list, closest_station_list, closest_station_mins_list, postcode_list = ([] for i in range(4))
+	listing_type_list, region_loc_list, bed_bath_ratio_list = ([] for i in range(3))
 
 	# Scrape each listing
 	listings = soup.find_all(attrs={'class': 'pli clearfix'})
@@ -136,6 +146,19 @@ def scrape_flats(database_path, radius=2):
 				closest_station = all_stations[0]
 				closest_station_mins = int(distances[0].get_text().strip().split()[0])
 
+			# Engineered Features
+				if listing_title.lower().contains('studio'):
+					listing_type = 'studio'
+				elif listing_title.lower().contains('shared'):
+					listing_type = 'shared'
+				elif listing_title.lower().contains('maisonette'):
+					listing_type = 'maisonette'
+				else:
+					listing_type = 'flat'
+				
+				region_loc = postcode[0].lower()
+				bed_bath_ratio = num_bedrooms/num_bathrooms
+
 				property_id_list.append(property_id)
 				property_link_list.append(property_link)
 				title_list.append(title)
@@ -160,6 +183,9 @@ def scrape_flats(database_path, radius=2):
 				closest_station_list.append(closest_station)
 				closest_station_mins_list.append(closest_station_mins)
 				postcode_list.append(postcode)
+				listing_type_list.append(listing_type)
+				region_loc_list.append(region_loc)
+				bed_bath_ratio_list.append(bed_bath_ratio)
 
 				# Print feedback
 				num_scraped += 1
@@ -170,6 +196,7 @@ def scrape_flats(database_path, radius=2):
 				existing_ids.append(property_id)
 			
 			except:
+				sleep(random.randint(3,7))
 				pass
 
 	# Create DataFrame
@@ -182,10 +209,18 @@ def scrape_flats(database_path, radius=2):
 		'available_from':avail_from_list, 'min_tenancy_months':min_tenancy_list, 'garden':garden_list,
 		'parking':parking_list, 'fireplace':fireplace_list, 'furnishing':furnishing_list,
 		'closest_station':closest_station_list, 'closest_station_mins':closest_station_mins_list, 
-		'postcode':postcode_list}
+		'postcode':postcode_list, 'listing_type':listing_type_list, 'region_loc':region_loc_list, 
+		'bed_bath_ratio':bed_bath_ratio_list}
 	
 	data = pd.DataFrame(data_dict)
 	data['scrape_date'] = today
+
+	# Make predictions
+	full_pipeline = load(transformation_pipeline)
+	model = load(model)
+	transformed_data = full_pipeline.transform(data)
+	predictions = model.predict(transformed_data)
+	data['predicted_monthly_rent'] = predictions
 
 	# Print feedback
 	print(f"{len(data)} new listings scraped today.")
@@ -195,13 +230,13 @@ def scrape_flats(database_path, radius=2):
 
 	# Append to existing CSV file to all historical data to be used in Tableau
 	try:
-		existing_data = pd.read_csv('all_rental_data.csv')
+		existing_data = pd.read_csv('all_rental_data_test.csv')
 		all_data = pd.concat([existing_data, data])
 		all_data.to_csv('all_rental_data.csv', index=False)
 		print(f"Listings appended to existing CSV file. In total there are {len(all_data)} listings in the Excel file.")
 	
 	except:
-		data.to_csv('all_rental_data.csv', index=False)
+		data.to_csv('all_rental_data_test.csv', index=False)
 		print("A new file has been created to hold all the listing data.")
 
 
@@ -231,7 +266,8 @@ def populate_database(database_path):
 		'family_friendly':'integer', 'pet_friendly':'integer', 'smoker_friendly':'integer', 
 		'available_from':'text', 'min_tenancy_months':'integer', 'garden':'integer', 'parking':'integer',
 		'fireplace':'integer', 'furnishing':'text', 'closest_station':'text', 
-		'closest_station_mins':'integer', 'postcode':'text', 'scrape_date':'text'
+		'closest_station_mins':'integer', 'postcode':'text', 'scrape_date':'text', 'listing_type':'text', 
+		'region_loc':'text', 'bed_bath_ratio':'real', 'predicted_monthly_rent':'real'
 		})
 
 	# Delete data from today only
