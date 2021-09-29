@@ -7,5 +7,6 @@ from joblib import load
 pipeline = load('full_pipeline.joblib')
 model = load('tuned_model.joblib')
 
-scrape_flats(transformation_pipeline = pipeline, model = model, radius = 2, database_path = 'real_estate.db')
-# populate_database(database_path = 'real_estate.db')
+# Scrape data and populate database
+scrape_flats(transformation_pipeline = pipeline, model = model, radius = 5, database_path = 'real_estate.db')
+populate_database(database_path = 'real_estate.db')

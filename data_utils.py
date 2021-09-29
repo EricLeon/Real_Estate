@@ -83,13 +83,11 @@ def scrape_flats(transformation_pipeline, model, database_path, radius=2):
 
 	# Scrape each listing
 	listings = soup.find_all(attrs={'class': 'pli clearfix'})
+	print(f'Found a total of {len(listings)} to scrape.')
 
 	for listing in listings:
 		property_link = 'https://www.openrent.co.uk/' + listing['href']
 		property_id = property_link.split('/')[-1]
-
-
-		print(property_link)
 
 		# Visit detailed listings; only if not previously scraped
 		if property_id in existing_ids:
@@ -150,17 +148,25 @@ def scrape_flats(transformation_pipeline, model, database_path, radius=2):
 				closest_station_mins = int(distances[0].get_text().strip().split()[0])
 
 			# Engineered Features
-				if listing_title.lower().contains('studio'):
+				if 'studio' in title.lower():
 					listing_type = 'studio'
-				elif listing_title.lower().contains('shared'):
+				elif 'shared' in title.lower():
 					listing_type = 'shared'
-				elif listing_title.lower().contains('maisonette'):
+				elif 'maisonette' in title.lower():
 					listing_type = 'maisonette'
 				else:
 					listing_type = 'flat'
 				
-				region_loc = postcode[0].lower()
-				bed_bath_ratio = num_bedrooms/num_bathrooms
+				if postcode[0].lower() == 'n':
+					region_loc = 'north'
+				elif postcode[0].lower() == 'e':
+					region_loc = 'east'
+				elif postcode[0].lower() == 's':
+					region_loc = 'south'
+				else:
+					region_loc = 'west'
+
+				bed_bath_ratio = bedrooms/bathrooms
 
 				property_id_list.append(property_id)
 				property_link_list.append(property_link)
@@ -193,12 +199,13 @@ def scrape_flats(transformation_pipeline, model, database_path, radius=2):
 				# Print feedback
 				num_scraped += 1
 				print(f"{num_scraped} new listings scraped")
-				sleep(random.randint(2,4))
+				sleep(random.randint(4,7))
 
 				# REMOVE THIS WHEN I ONLY WANT UNIQUE LISTINGS
 				existing_ids.append(property_id)
 			
 			except:
+				sleep(random.randint(1,2))
 				pass
 
 	# Create DataFrame
@@ -218,9 +225,12 @@ def scrape_flats(transformation_pipeline, model, database_path, radius=2):
 	data['scrape_date'] = today
 
 	# Make predictions
-	transformed_data = transformation_pipeline.transform(data)
-	predictions = model.predict(transformed_data)
-	data['predicted_monthly_rent'] = predictions
+	if len(data) > 0:
+		transformed_data = transformation_pipeline.transform(data)
+		predictions = model.predict(transformed_data)
+		data['predicted_monthly_rent'] = predictions
+	else:
+		print("No new listings to predict.")
 
 	# Print feedback
 	print(f"{len(data)} new listings scraped today.")
@@ -230,13 +240,13 @@ def scrape_flats(transformation_pipeline, model, database_path, radius=2):
 
 	# Append to existing CSV file to all historical data to be used in Tableau
 	try:
-		existing_data = pd.read_csv('all_rental_data_test.csv')
+		existing_data = pd.read_csv('all_rental_data.csv')
 		all_data = pd.concat([existing_data, data])
 		all_data.to_csv('all_rental_data.csv', index=False)
 		print(f"Listings appended to existing CSV file. In total there are {len(all_data)} listings in the Excel file.")
 	
 	except:
-		data.to_csv('all_rental_data_test.csv', index=False)
+		data.to_csv('all_rental_data.csv', index=False)
 		print("A new file has been created to hold all the listing data.")
 
 
