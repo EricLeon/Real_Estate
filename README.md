@@ -4,7 +4,7 @@
 - Created a data-cleaning pipeline through which I pass freshly scraped data that uniformly parses data into new features that aide in analysis.
 - Used Tableau Desktop to design and build a custom dashboard for identifying ideal rentals.
 - Performed data cleaning, exploratory data analysis as well as feature engineering on collected data.
-- Trained & Optimised a Random Forest Regression model with an RMSE of roughly 123 which I am currently utilising to identify both "fairly" priced listings as well as those that may be potentially undervalued.
+- Trained & Optimised a Random Forest Regression model with an RMSE of roughly 112 which I am currently utilising to identify both "fairly" priced listings as well as those that may be potentially undervalued.
 
 *The workbook containing the Machine Learning / Data Science workflow is in this repository named "Flat Rental Analysis & Modelling.ipynb" and contains further commentary.*
 
